@@ -5,5 +5,5 @@ plugins {
 dependencies {
     implementation(project(":keyext.api"))
     implementation("org.freemarker:freemarker:2.3.34")
-    implementation("info.picocli:picocli:4.7.6")
+    implementation("info.picocli:picocli:4.7.7")
 }

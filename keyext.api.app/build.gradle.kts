@@ -1,7 +1,7 @@
 plugins {
     id("buildlogic.java-application-conventions")
     application
-    id("com.gradleup.shadow") version "9.0.1"
+    id("com.gradleup.shadow") version "9.4.2"
 }
 
 description "Verification server interface via JSON-RPC"
