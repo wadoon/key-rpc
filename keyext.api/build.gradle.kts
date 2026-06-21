@@ -1,12 +1,20 @@
-import org.jetbrains.dokka.gradle.engine.parameters.VisibilityModifier
-
 plugins {
     id("buildlogic.java-library-conventions")
 }
 
 dependencies {
     api(libs.key.core)
-    api(libs.key.ui)
+    api(libs.key.ui) {
+        // saves 50% -> ca. 30 MB.
+        exclude(group =  "org.key-project", module="keyext.proofmanagement")
+        exclude(group =  "org.key-project", module="keyext.isabelletranslation")
+        exclude(group =  "org.key-project", module="keyext.slicing")
+        exclude(group =  "org.key-project", module="keyext.caching")
+        exclude(group =  "org.key-project", module="keyext.ui.testgen")
+        exclude(group =  "org.key-project", module="key.core.testgen")
+        exclude(group =  "org.key-project", module="key.core.symbolic_execution")
+        exclude(group =  "org.key-project", module="key.core.proof_references")
+    }
 
     api(libs.lsp4j.jsonrpc)
     implementation(libs.lsp4j.websocket.jakarta)
