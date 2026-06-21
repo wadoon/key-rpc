@@ -40,7 +40,7 @@ jobs:
       - run: ./gradlew --parallel :dokkaGeneratePublicationHtml assemble
 
       - run: cp -R build/dokka/html/ out/dokka
-      - run: ls -lR dokka
+      - run: ls -lR out
 
       - name: "Upload GitHub Pages artifact"
         uses: actions/upload-pages-artifact@v5
