@@ -12,7 +12,7 @@ tasks.named<JavaCompile>("compileJava") {
 }
 
 dependencies {
-    implementation("com.google.code.gson:gson:2.11.0")
+    implementation("com.google.code.gson:gson:2.14.0")
     implementation("org.jspecify:jspecify:1.0.0")
     compileOnly("org.projectlombok:lombok:1.18.46")
     annotationProcessor("org.projectlombok:lombok:1.18.46")
