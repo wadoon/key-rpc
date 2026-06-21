@@ -78,7 +78,7 @@ class Main : CliktCommand(name = "gendoc") {
         resources.filter { it.nameWithoutExtension != "md" }
             .forEach { copyResources(it, base, outputWeb) }
 
-        val dokkaLink = Link("/dokka/index.html", "API", 11000)
+        val dokkaLink = Link("dokka/index.html", "Dokka", 11000)
         val keyLink = Link("https://keyproject.github.io/key-docs/", "KeY Documentation", 10000)
         val bookLink = Link("https://key-project.org/thebook2", "KeY Book", 10001)
 
