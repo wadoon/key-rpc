@@ -36,7 +36,6 @@ class Main : CliktCommand(name = "gendoc") {
     private val outputWeb: Path by option("--output-web", help = "Output folder")
         .path().default(Paths.get("../out"))
 
-
     override fun run() {
         val metadata = ExtractMetaData()
         metadata.run()
@@ -63,13 +62,12 @@ class Main : CliktCommand(name = "gendoc") {
         cus.asSequence().map{it.get()}.forEach {
             val resolve = outputJava.resolve(it.packageDeclaration()?.nameAsString?.replace('.', '/') ?: "")
             resolve.createDirectories()
-            it.setStorage(resolve.resolve(it.types.first().nameAsString+".java"))
+            it.setStorage(resolve.resolve(it.types.first().nameAsString + ".java"))
             it.storage.get().path.writeText(
                 it.toString()
             )
         }
     }
-
 
     private fun runGenerator(keyApi: KeyApi, target: String, folder: Path, api: (KeyApi) -> String) {
         try {

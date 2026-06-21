@@ -141,7 +141,6 @@ class ExtractMetaData : Runnable {
             return getOrFindType(type.getTypeParameters()[0].javaClass)
         }
 
-
         if (type == MutableList::class.java) {
             // TODO try to get the type below.
             val subType = getOrFindType(type.getTypeParameters()[0])
@@ -149,7 +148,6 @@ class ExtractMetaData : Runnable {
         }
 
         check(!(type == Class::class.java || type == Constructor::class.java || type == Proof::class.java)) { "Forbidden class reached!" }
-
 
         val t = types.get(type.name)
         if (t != null) return t
@@ -171,17 +169,19 @@ class ExtractMetaData : Runnable {
                         )
                     }
                     .toList(),
-                documentation!!)
+                documentation!!
+            )
         }
 
         val list = type.getDeclaredFields()
             .map {
                 Metamodel.Field(
                     it.name, getOrFindTypeName(it.genericType),
-                    if (type.isRecord)
+                    if (type.isRecord) {
                         findDocumentationRecord(type, it.name)
-                    else
+                    } else {
                         findDocumentation(it)
+                    }
                 )
             }
 
@@ -274,7 +274,9 @@ class ExtractMetaData : Runnable {
     private fun getOrFindTypeName(type: Type): String {
         when (type) {
             is GenericArrayType -> throw RuntimeException("Unwanted type found: $type")
+
             is Class<*> -> return getOrFindTypeName(type)
+
             is ParameterizedType -> {
                 return when (val typeName = type.rawType.typeName) {
                     CompletableFuture::class.java.name -> {
@@ -305,17 +307,29 @@ class ExtractMetaData : Runnable {
 
         return when (type) {
             String::class.java -> Metamodel.STRING.name
+
             Int::class.java -> Metamodel.INT.name
+
             Double::class.java -> Metamodel.DOUBLE.name
+
             Long::class.java -> Metamodel.LONG.name
+
             Char::class.java -> Metamodel.LONG.name
+
             File::class.java -> Metamodel.STRING.name
+
             Boolean::class.java -> Metamodel.BOOL.name
+
             java.lang.Boolean.TYPE -> Metamodel.BOOL.name
+
             Integer.TYPE -> Metamodel.INT.name
+
             java.lang.Double.TYPE -> Metamodel.DOUBLE.name
+
             java.lang.Long.TYPE -> Metamodel.LONG.name
+
             Character.TYPE -> Metamodel.LONG.name
+
             CompletableFuture::class.java -> {
                 getOrFindTypeName(type.getTypeParameters()[0].javaClass)
             }
@@ -334,13 +348,15 @@ class ExtractMetaData : Runnable {
         }
     }
 
-    fun getOrFindType(type: Type): Metamodel.Type {
-        return when (type) {
+    fun getOrFindType(type: Type): Metamodel.Type = when (type) {
             is Class<*> -> getOrFindType(type)!!
+
             is ParameterizedType -> {
                 when (val typeName = type.rawType.typeName) {
                     CompletableFuture::class.java.name -> getOrFindType(type.actualTypeArguments[0])
+
                     List::class.java.name -> Metamodel.ListType(getOrFindType(type.actualTypeArguments[0]))
+
                     Either::class.java.name ->
                         Metamodel.EitherType(
                             getOrFindType(type.actualTypeArguments[0]),
@@ -353,7 +369,6 @@ class ExtractMetaData : Runnable {
 
             else -> error("Could not determine type for $type")
         }
-    }
 
     companion object {
         private fun printFieldDocumentation(javadoc: FieldJavadoc): Metamodel.HelpText {
@@ -361,12 +376,14 @@ class ExtractMetaData : Runnable {
             javadoc.comment.visit(visitor)
 
             val t = javadoc.other.stream()
-                .map(Function { it: OtherJavadoc? ->
+                .map(
+                    Function { it: OtherJavadoc? ->
                     Metamodel.HelpTextEntry(
                         it!!.name,
                         it.comment.toString()
                     )
-                })
+                }
+                )
 
             val p = javadoc.seeAlso.stream().map(
                 Function { it: SeeAlsoJavadoc? ->
@@ -374,7 +391,8 @@ class ExtractMetaData : Runnable {
                         it!!.seeAlsoType.toString(),
                         it.stringLiteral
                     )
-                })
+                }
+            )
 
             return Metamodel.HelpText(visitor.build(), Stream.concat(p, t).toList())
         }

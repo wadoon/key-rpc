@@ -31,7 +31,6 @@ class Metamodel {
     @Serializable
     data class HelpTextEntry(val name: String, val value: String)
 
-
     /** An [Endpoint] is a provided service/method. */
     @Serializable
     sealed interface Endpoint {
@@ -41,10 +40,7 @@ class Metamodel {
         /** a markdown documentation */
         val documentation: HelpText?
 
-
-        fun kind(): String {
-            return javaClass.getName()
-        }
+        fun kind(): String = javaClass.getName()
 
         /** a list of its arguments */
         val args: List<Argument>
@@ -61,7 +57,6 @@ class Metamodel {
         /** sender of this invocation */
         val sender
             get() = if (javaClass.getSimpleName().startsWith("Server")) "Client" else "Server"
-
 
         val isAsync: Boolean
             get() = javaClass.getSimpleName().endsWith("Notification")
@@ -144,7 +139,6 @@ class Metamodel {
         val identifier: String?
     }
 
-
     /** Typical built-in data types supported by the API */
     @Serializable
     sealed class BuiltinType(override val name: String) : Type {
@@ -201,9 +195,7 @@ class Metamodel {
         override val identifier = typeFullName
 
         /** */
-        fun jsonExample(): String? {
-            return DataExamples.get(typeFullName)
-        }
+        fun jsonExample(): String? = DataExamples.get(typeFullName)
     }
 
     /** A data type representing that a method returns or expecting either type `a` or `b`.

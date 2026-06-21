@@ -20,21 +20,22 @@ abstract class PythonGenerator(protected val metamodel: Metamodel.KeyApi) : Supp
 
     protected abstract fun run()
 
-    protected fun asPython(typeName: String): String? {
-        return when (typeName) {
+    protected fun asPython(typeName: String): String? = when (typeName) {
             "INT", "LONG" -> "int"
+
             "STRING" -> "str"
+
             "BOOL" -> "bool"
+
             "DOUBLE" -> "float"
+
             else -> {
                 val t = findType(typeName)
                 asPython(t)
             }
         }
-    }
 
-    fun asPython(t: Metamodel.Type): String? {
-        return when (t) {
+    fun asPython(t: Metamodel.Type): String? = when (t) {
             is Metamodel.ListType -> "typing.List[" + asPython(t.componentType) + "]"
             is Metamodel.EitherType -> "typing.Union[" + asPython(t.a) + ", " + asPython(t.b) + "]"
             Metamodel.INT, Metamodel.LONG -> "int"
@@ -44,16 +45,14 @@ abstract class PythonGenerator(protected val metamodel: Metamodel.KeyApi) : Supp
             else -> t.name
         }
 
-    }
-
-    fun findType(typeName: String?): Metamodel.Type {
-        return this.metamodel.types.values
+    fun findType(typeName: String?): Metamodel.Type = this.metamodel.types.values
             .firstOrNull {
-                if (it is Metamodel.ListType) it.componentType.name == typeName
-                else it.name == typeName
+                if (it is Metamodel.ListType) {
+                    it.componentType.name == typeName
+                } else {
+                    it.name == typeName
+                }
             } ?: Metamodel.ObjectType("...", "...", listOf(), null)
-    }
-
 
     class PyApiGen(metamodel: Metamodel.KeyApi) : PythonGenerator(metamodel) {
         override fun run() {
@@ -82,7 +81,6 @@ abstract class PythonGenerator(protected val metamodel: Metamodel.KeyApi) : Supp
                     .sortedBy { it.name }
             )
         }
-
 
         private fun client(sorted: Sequence<Metamodel.Endpoint>) {
             out.format("class Client(abc.ABCMeta):%n")
@@ -188,16 +186,19 @@ abstract class PythonGenerator(protected val metamodel: Metamodel.KeyApi) : Supp
             if (type is Metamodel.ObjectType) {
                 out.format("class %s:%n".format(type.name))
                 out.format("    \"\"\"%s\"\"\"%n", type.documentation)
-                type.fields.forEach(Consumer { it: Metamodel.Field? ->
+                type.fields.forEach(
+                    Consumer { it: Metamodel.Field? ->
                     out.format(
                         "%n    %s : %s%n    \"\"\"%s\"\"\"%n"
                             .format(it!!.name, asPython(it.type), it.documentation)
                     )
-                })
+                }
+                )
 
                 out.format(
                     "\n    def __init__(self%s):%n".format(
-                        type.fields.joinToString(", ", ", ", "") { it.name })
+                        type.fields.joinToString(", ", ", ", "") { it.name }
+                    )
                 )
 
                 if (type.fields.isEmpty()) out.format("        pass%n%n")

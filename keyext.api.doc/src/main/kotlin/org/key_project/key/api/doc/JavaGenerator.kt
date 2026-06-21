@@ -35,44 +35,53 @@ abstract class JavaGenerator(protected val metamodel: Metamodel.KeyApi) : Suppli
     fun CompilationUnit.className(name: String, packageName: String = BASE_PACKAGE): Type =
         ClassOrInterfaceType(null, name)
 
-    protected fun adJava(typeName: String): Type {
-        return when (typeName) {
+    protected fun adJava(typeName: String): Type = when (typeName) {
             Metamodel.INT.name, "INT" -> PrimitiveType(INT)
+
             Metamodel.LONG.name, "LONG" -> PrimitiveType(LONG)
+
             Metamodel.STRING.name, "STRING" -> ClassOrInterfaceType(null, "String")
+
             Metamodel.BOOL.name, "BOOL" -> PrimitiveType(BOOLEAN)
+
             Metamodel.DOUBLE.name, "DOUBLE" -> PrimitiveType(DOUBLE)
+
             else -> {
                 val t = findType(typeName)
                 adJava(t)
             }
         }
-    }
 
     fun listType(t: Type) = ClassOrInterfaceType(null, SimpleName("List"), NodeList(t))
     fun eitherType(a: Type, b: Type) = ClassOrInterfaceType(null, SimpleName("Either"), NodeList(a, b))
 
-    fun adJava(t: Metamodel.Type): Type {
-        return when (t) {
+    fun adJava(t: Metamodel.Type): Type = when (t) {
             is Metamodel.ListType -> listType(adJava(t.componentType))
+
             is Metamodel.EitherType -> eitherType(adJava(t.a), adJava(t.b))
+
             Metamodel.INT -> PrimitiveType(INT)
+
             Metamodel.LONG -> PrimitiveType(LONG)
+
             Metamodel.STRING -> ClassOrInterfaceType(null, "String")
+
             Metamodel.BOOL -> PrimitiveType(BOOLEAN)
+
             Metamodel.DOUBLE -> PrimitiveType(DOUBLE)
+
             is Metamodel.EnumType,
             is Metamodel.ObjectType -> ClassOrInterfaceType(null, t.name)
         }
-    }
 
-    fun findType(typeName: String?): Metamodel.Type {
-        return this.metamodel.types.values
+    fun findType(typeName: String?): Metamodel.Type = this.metamodel.types.values
             .firstOrNull {
-                if (it is Metamodel.ListType) it.componentType.name == typeName
-                else it.name == typeName
+                if (it is Metamodel.ListType) {
+                    it.componentType.name == typeName
+                } else {
+                    it.name == typeName
+                }
             } ?: Metamodel.ObjectType("Object", "Object", listOf(), null)
-    }
 
     class JavaApiGenServer(metamodel: Metamodel.KeyApi) : JavaGenerator(metamodel) {
         override fun get(): CompilationUnit {
@@ -100,11 +109,13 @@ abstract class JavaGenerator(protected val metamodel: Metamodel.KeyApi) : Suppli
 
                     sorted.forEach { (name, sorted) ->
                         val cname = "Segment${name.capitalize()}"
-                        this.addMember(ClassOrInterfaceDeclaration().apply {
+                        this.addMember(
+                            ClassOrInterfaceDeclaration().apply {
                             setName(cname)
                             sorted.forEach { addMember(serverEndpoint(it)) }
                             addJavadoc(metamodel.segmentDocumentation[name])
-                        })
+                        }
+                        )
 
                         addField(cname, name, PUBLIC, FINAL).variables().first()
                             .setInitializer("new Segment${name.capitalize()}()")
@@ -127,11 +138,11 @@ abstract class JavaGenerator(protected val metamodel: Metamodel.KeyApi) : Suppli
                 val t = adJava(endpoint.returnType)
                 setType(t.clone())
 
-                if(endpoint.returnType is Metamodel.EitherType || endpoint.returnType is Metamodel.ListType) {
+                if (endpoint.returnType is Metamodel.EitherType || endpoint.returnType is Metamodel.ListType) {
                     val s = "Type fooType = new TypeToken<$t>() {}.getType();"
                     body()?.addStatement(s)
                     call.arguments().add(0, NameExpr("fooType"))
-                }else {
+                } else {
                     call.arguments().add(0, FieldAccessExpr(TypeExpr(t), "class"))
                 }
 
@@ -181,8 +192,7 @@ abstract class JavaGenerator(protected val metamodel: Metamodel.KeyApi) : Suppli
     }
 
     class JavaDataGen(metamodel: Metamodel.KeyApi) : JavaGenerator(metamodel) {
-        override fun get(): CompilationUnit {
-            return CompilationUnit().apply {
+        override fun get(): CompilationUnit = CompilationUnit().apply {
                 setPackageDeclaration(PACKAGE)
                 addImport("org.key_project.key.api.client.BaseLocal")
                 addClass("ApiModel", PUBLIC, FINAL).apply {
@@ -198,7 +208,7 @@ abstract class JavaGenerator(protected val metamodel: Metamodel.KeyApi) : Suppli
                             )
                         }
 
-                    //out.format("KEY_DATA_CLASSES = { %s }%n%n", names)
+                    // out.format("KEY_DATA_CLASSES = { %s }%n%n", names)
                     /*val namesReverse: String =
                 metamodel.types.values
                     .map {
@@ -209,7 +219,6 @@ abstract class JavaGenerator(protected val metamodel: Metamodel.KeyApi) : Suppli
              */
                 }
             }
-        }
 
         private fun printType(type: Metamodel.Type): TypeDeclaration<*> =
             if (type is Metamodel.ObjectType) {

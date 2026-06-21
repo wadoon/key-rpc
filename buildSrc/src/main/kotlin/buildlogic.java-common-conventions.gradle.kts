@@ -41,7 +41,7 @@ spotless {
 
     kotlin {
         target("src/**/*.kt")
-        ktlint()
+        ktlint().setEditorConfigPath("$rootDir/.editorconfig")
         trimTrailingWhitespace()
         endWithNewline()
     }
