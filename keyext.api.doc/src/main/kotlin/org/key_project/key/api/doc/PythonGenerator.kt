@@ -67,7 +67,7 @@ abstract class PythonGenerator(protected val metamodel: Metamodel.KeyApi) : Supp
                     import abc
                     import typing
                     from abc import abstractmethod
-                    
+
                     """.trimIndent()
             )
             server(
@@ -160,7 +160,7 @@ abstract class PythonGenerator(protected val metamodel: Metamodel.KeyApi) : Supp
                     import typing
                     from abc import abstractmethod, ABCMeta
 
-                    
+
 
                     """.trimIndent()
             )

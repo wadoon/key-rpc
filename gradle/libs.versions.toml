@@ -9,9 +9,14 @@ picocli = "4.7.7"
 guava = "33.6.0-jre"
 therapi = "0.15.0"
 kotlin-gradle-plugin = "2.3.20"
+dokka = "2.2.0"
+spotless = "8.7.0"
 
 [libraries]
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin-gradle-plugin" }
+spotless = { module = "com.diffplug.spotless:com.diffplug.spotless.gradle.plugin", version.ref = "spotless" }
+dokka = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version.ref = "dokka" }
+dokka-mermaid = { module = "com.glureau:html-mermaid-dokka-plugin", version = "0.6.0" }
 key-core = { module = "org.key-project:key.core", version.ref = "key" }
 key-ui = { module = "org.key-project:key.ui", version.ref = "key" }
 

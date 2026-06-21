@@ -28,13 +28,13 @@ class Main : CliktCommand(name = "gendoc") {
         .default(Paths.get("keyext.api/src/main/java"))
 
     private val outputPython: Path by option("--output-python", help = "Output folder")
-        .path().default(Paths.get("out"))
+        .path().default(Paths.get("../keyext.client.python/"))
 
     private val outputJava: Path by option("--output-java", help = "Output folder")
-        .path().default(Paths.get("keyext.api.client/src/gen/java/"))
+        .path().default(Paths.get("../keyext.api.client/src/gen/java/"))
 
     private val outputWeb: Path by option("--output-web", help = "Output folder")
-        .path().default(Paths.get("out"))
+        .path().default(Paths.get("../out"))
 
 
     override fun run() {

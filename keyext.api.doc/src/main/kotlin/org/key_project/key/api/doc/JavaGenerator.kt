@@ -88,7 +88,7 @@ abstract class JavaGenerator(protected val metamodel: Metamodel.KeyApi) : Suppli
                     addExtendedType("BaseRemote")
                     addImport("org.key_project.key.api.client.*")
                     addImport("java.util.*")
-                    addImport("org.eclipse.lsp4j.jsonrpc.messages.Either")
+                    addImport("java.lang.*")
                     addImport("org.key_project.key.api.client.stubs.ApiModel.*")
                     addImport("java.lang.reflect.Type")
                     addImport("com.google.gson.reflect.TypeToken")
@@ -236,4 +236,3 @@ abstract class JavaGenerator(protected val metamodel: Metamodel.KeyApi) : Suppli
             }
     }
 }
-
