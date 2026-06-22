@@ -8,7 +8,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.concurrent.ArrayBlockingQueue;
 
-import edu.kit.iti.formal.keyextclientjava.rpc.JsonRPC;
+import org.key_project.key.api.client.JsonRPC;
 import org.key_project.key.api.client.RPCLayer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
