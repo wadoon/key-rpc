@@ -122,7 +122,7 @@ def object_decoder(obj):
 
 
 class LspEndpoint(threading.Thread):
-    def __init__(self, json_rpc_endpoint: JsonRpcEndpoint, method_callbacks=None, notify_callbacks=None, timeout=2000):
+    def __init__(self, json_rpc_endpoint: JsonRpcEndpoint, method_callbacks=None, notify_callbacks=None, timeout=None):
         super().__init__()
         self.json_rpc_endpoint: JsonRpcEndpoint = json_rpc_endpoint
         self.notify_callbacks: Dict = notify_callbacks or {}
@@ -144,6 +144,20 @@ class LspEndpoint(threading.Thread):
         self.shutdown_flag = True
 
     def run(self):
+        try:
+            self._run_loop()
+        finally:
+            # Stop and wake any callers still waiting so they fail fast instead
+            # of blocking forever once the connection is gone.
+            self.shutdown_flag = True
+            self._wake_pending()
+
+    def _wake_pending(self):
+        for cond in list(self.event_dict.values()):
+            with cond:
+                cond.notify_all()
+
+    def _run_loop(self):
         rpc_id = None
         while not self.shutdown_flag:
             try:
@@ -201,16 +215,20 @@ class LspEndpoint(threading.Thread):
         cond = threading.Condition()
         self.event_dict[current_id] = cond
 
-        cond.acquire()
-        self.send_message(method_name, args, current_id)
-        if self.shutdown_flag:
-            return None
+        with cond:
+            self.send_message(method_name, args, current_id)
+            # `timeout` is in seconds; None waits indefinitely. KeY operations
+            # can run for a long time, so a premature timeout is worse than none.
+            if not self.shutdown_flag:
+                cond.wait(timeout=self._timeout)
 
-        if not cond.wait(timeout=self._timeout):
-            raise TimeoutError()
-        cond.release()
-
-        self.event_dict.pop(current_id)
+        self.event_dict.pop(current_id, None)
+        if current_id not in self.response_dict:
+            # Woken without a result: the wait timed out, or the reader thread
+            # stopped because the server closed the connection.
+            if self.shutdown_flag:
+                raise ConnectionError("server closed the connection before responding")
+            raise TimeoutError("no response within %s seconds" % self._timeout)
         result, error = self.response_dict.pop(current_id)
         if error:
             raise ResponseError(error.get("code"), error.get("message"), error.get("data"))
