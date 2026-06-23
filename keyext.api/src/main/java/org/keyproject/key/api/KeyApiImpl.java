@@ -15,8 +15,11 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Stack;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -102,7 +105,23 @@ public final class KeyApiImpl implements KeyApi {
     private final Map<String, ProofMacro> macrosByName = availableMacros.stream()
             .collect(Collectors.toUnmodifiableMap(ProofMacro::getName, m -> m, (a, b) -> a));
 
+    /// Dedicated executor for KeY operations. Several of them (auto, macro,
+    /// script, ...) block their worker thread for the whole proof run, so running
+    /// them on the shared ForkJoinPool.commonPool() could starve unrelated work
+    /// across the JVM. Daemon threads, so the pool never keeps the JVM alive.
+    private final ExecutorService executor = Executors.newCachedThreadPool(runnable -> {
+        var thread = new Thread(runnable, "key-api-worker");
+        thread.setDaemon(true);
+        return thread;
+    });
+
     public KeyApiImpl() {
+    }
+
+    /// Runs {@code task} on the dedicated {@link #executor} rather than the
+    /// common pool.
+    private <T> CompletableFuture<T> async(Supplier<T> task) {
+        return CompletableFuture.supplyAsync(task, executor);
     }
 
     private static <T> List<T> loadAll(Class<T> service) {
@@ -125,6 +144,7 @@ public final class KeyApiImpl implements KeyApi {
 
     @Override
     public void exit() {
+        executor.shutdownNow();
         this.exitHandler.apply(null);
     }
 
@@ -157,7 +177,7 @@ public final class KeyApiImpl implements KeyApi {
     @Override
     public CompletableFuture<MacroStatistic> script(ProofId proofId, String scriptLine,
             StrategyOptions options) {
-        return CompletableFuture.supplyAsync(() -> {
+        return async(() -> {
             var proof = data.find(proofId);
             var env = data.find(proofId.env());
             var script = ParsingFacade.parseScript(scriptLine);
@@ -175,7 +195,7 @@ public final class KeyApiImpl implements KeyApi {
     @Override
     public CompletableFuture<MacroStatistic> macro(ProofId proofId, String macroName,
             StrategyOptions options) {
-        return CompletableFuture.supplyAsync(() -> {
+        return async(() -> {
             var proof = data.find(proofId);
             var env = data.find(proofId.env());
             var macro = macrosByName.get(macroName);
@@ -196,7 +216,7 @@ public final class KeyApiImpl implements KeyApi {
 
     @Override
     public CompletableFuture<ProofStatus> auto(ProofId proofId, StrategyOptions options) {
-        return CompletableFuture.supplyAsync(() -> {
+        return async(() -> {
             var proof = data.find(proofId);
             var env = data.find(proofId.env());
             options.configure(proof);
@@ -223,7 +243,7 @@ public final class KeyApiImpl implements KeyApi {
     @Override
     public CompletableFuture<List<NodeDesc>> goals(ProofId proofId, boolean onlyOpened,
             boolean onlyEnabled) {
-        return CompletableFuture.supplyAsync(() -> {
+        return async(() -> {
             var proof = data.find(proofId);
             if (onlyOpened && !onlyEnabled) {
                 return asNodeDesc(proofId, proof.openGoals());
@@ -250,7 +270,7 @@ public final class KeyApiImpl implements KeyApi {
 
     @Override
     public CompletableFuture<NodeDesc> tree(ProofId proofId) {
-        return CompletableFuture.supplyAsync(() -> {
+        return async(() -> {
             var proof = data.find(proofId);
             return asNodeDescRecursive(proofId, proof.root());
         });
@@ -268,7 +288,7 @@ public final class KeyApiImpl implements KeyApi {
 
     @Override
     public CompletableFuture<List<NodeDesc>> children(NodeId nodeId) {
-        return CompletableFuture.supplyAsync(() -> {
+        return async(() -> {
             var node = data.find(nodeId);
             return asNodeDesc(nodeId.proofId(), node.childrenStream());
         });
@@ -276,7 +296,7 @@ public final class KeyApiImpl implements KeyApi {
 
     @Override
     public CompletableFuture<List<NodeDesc>> pruneTo(NodeId nodeId) {
-        return CompletableFuture.supplyAsync(() -> {
+        return async(() -> {
             var proof = data.find(nodeId.proofId());
             var node = data.find(nodeId);
 
@@ -292,7 +312,7 @@ public final class KeyApiImpl implements KeyApi {
     /*
      * @Override
      * public CompletableFuture<Statistics> statistics(ProofId proofId) {
-     * return CompletableFuture.supplyAsync(() -> {
+     * return async(() -> {
      * var proof = data.find(proofId);
      * return proof.getStatistics();
      * });
@@ -301,7 +321,7 @@ public final class KeyApiImpl implements KeyApi {
 
     @Override
     public CompletableFuture<Boolean> save(ProofId proofId, String path) {
-        return CompletableFuture.supplyAsync(() -> {
+        return async(() -> {
             var proof = data.find(proofId);
             var saver = new OutputStreamProofSaver(proof);
 
@@ -325,7 +345,7 @@ public final class KeyApiImpl implements KeyApi {
 
     @Override
     public CompletableFuture<NodeDesc> root(ProofId proofId) {
-        return CompletableFuture.supplyAsync(() -> {
+        return async(() -> {
             var proof = data.find(proofId);
             return asNodeDesc(proofId, proof.root());
         });
@@ -339,7 +359,7 @@ public final class KeyApiImpl implements KeyApi {
 
     @Override
     public CompletableFuture<List<TreeNodeDesc>> treeChildren(ProofId proof, TreeNodeId nodeId) {
-        return CompletableFuture.supplyAsync(() -> {
+        return async(() -> {
             var serial = Integer.parseInt(nodeId.id());
 
             Node root = data.find(proof).root();
@@ -373,7 +393,7 @@ public final class KeyApiImpl implements KeyApi {
 
     @Override
     public CompletableFuture<List<TreeNodeDesc>> treeSubtree(ProofId proof, TreeNodeId nodeId) {
-        return CompletableFuture.supplyAsync(() -> {
+        return async(() -> {
             var serial = Integer.parseInt(nodeId.id());
             Node root = data.find(proof).root();
 
@@ -419,7 +439,7 @@ public final class KeyApiImpl implements KeyApi {
 
     @Override
     public CompletableFuture<List<SortDesc>> sorts(EnvironmentId envId) {
-        return CompletableFuture.supplyAsync(() -> {
+        return async(() -> {
             var env = data.find(envId);
             var sorts = env.getServices().getNamespaces().sorts().allElements();
             return sorts.stream().map(SortDesc::from).toList();
@@ -428,7 +448,7 @@ public final class KeyApiImpl implements KeyApi {
 
     @Override
     public CompletableFuture<List<FunctionDesc>> functions(EnvironmentId envId) {
-        return CompletableFuture.supplyAsync(() -> {
+        return async(() -> {
             var env = data.find(envId);
             var functions = env.getServices().getNamespaces().functions().allElements();
             return functions.stream().map(FunctionDesc::from).toList();
@@ -437,7 +457,7 @@ public final class KeyApiImpl implements KeyApi {
 
     @Override
     public CompletableFuture<List<ContractDesc>> contracts(EnvironmentId envId) {
-        return CompletableFuture.supplyAsync(() -> {
+        return async(() -> {
             var env = data.find(envId);
             var contracts = env.getProofContracts();
             return contracts.stream().map(it -> ContractDesc.from(envId, env.getServices(), it))
@@ -447,7 +467,7 @@ public final class KeyApiImpl implements KeyApi {
 
     @Override
     public CompletableFuture<ProofId> openContract(ContractId contractId) {
-        return CompletableFuture.supplyAsync(() -> {
+        return async(() -> {
             var env = data.find(contractId.envId());
             var contracts = env.getProofContracts();
             var contract =
@@ -476,7 +496,7 @@ public final class KeyApiImpl implements KeyApi {
 
     @Override
     public CompletableFuture<NodeTextDesc> print(NodeId nodeId, PrintOptions options) {
-        return CompletableFuture.supplyAsync(() -> {
+        return async(() -> {
             var node = data.find(nodeId);
             var env = data.find(nodeId.proofId().env());
             var notInfo = new NotationInfo();
@@ -527,7 +547,7 @@ public final class KeyApiImpl implements KeyApi {
 
     @Override
     public CompletableFuture<List<TermActionDesc>> actions(NodeTextId printId, int caretPos) {
-        return CompletableFuture.supplyAsync(() -> {
+        return async(() -> {
             var node = data.find(printId.nodeId());
             var proof = data.find(printId.nodeId().proofId());
             var goal = proof.getOpenGoal(node);
@@ -547,7 +567,7 @@ public final class KeyApiImpl implements KeyApi {
     @Override
     public CompletableFuture<Boolean> applyAction(TermActionId id) {
         // FIXME: We can probably cache this work in `actions`.
-        return CompletableFuture.supplyAsync(() -> {
+        return async(() -> {
             var node = data.find(id.nodeTextId().nodeId());
             var proof = data.find(id.nodeTextId().nodeId().proofId());
             var goal = proof.getOpenGoal(node);
